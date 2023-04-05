@@ -1,2 +1,2 @@
 # glhf
-Generic Lightweight HTTP Framework 
+Generic Light-weight HTTP Framework 
