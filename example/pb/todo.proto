@@ -1,0 +1,13 @@
+syntax = "proto3";
+option go_package = "github.com/VauntDev/glhf/example/pb";
+package pb;
+
+message Todo {
+    string id = 1;
+    Item item = 2;
+}
+
+message Item {
+    string name = 1;
+    string message = 2;
+}
