@@ -2,9 +2,7 @@ package glhf
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"google.golang.org/protobuf/proto"
@@ -60,8 +58,8 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-
 		}
+
 		req := &Request[I]{r: r, body: &requestBody}
 		var responseBody O
 		response := &Response[O]{w: w, Body: &responseBody}
@@ -82,6 +80,7 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 			}
 			return
 		}
+
 		w.WriteHeader(response.statusCode)
 		return
 	}
@@ -103,6 +102,7 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 		req := &Request[I]{r: r}
 		var responseBody O
 		response := &Response[O]{w: w, Body: &responseBody}
+
 		// call the handler
 		fn(req, response)
 
@@ -296,7 +296,7 @@ func unmarshalRequest(contentType string, b []byte, body Body) error {
 	case ContentProto:
 		msg, ok := body.(proto.Message)
 		if !ok {
-			return fmt.Errorf("not a proto")
+			return ProtoErr
 		}
 
 		if err := proto.Unmarshal(b, msg); err != nil {
@@ -305,7 +305,7 @@ func unmarshalRequest(contentType string, b []byte, body Body) error {
 
 		body, ok = msg.(Body)
 		if !ok {
-			return fmt.Errorf("not a proto")
+			return ProtoErr
 		}
 		return nil
 	default:
@@ -322,18 +322,16 @@ func unmarshalRequest(contentType string, b []byte, body Body) error {
 func marshalResponse(contentType string, body Body) ([]byte, error) {
 	switch contentType {
 	case ContentProto:
-		log.Println("marshalling", body)
+
 		msg, ok := body.(proto.Message)
 		if !ok {
-			log.Println("failed ")
-			return nil, fmt.Errorf("not a proto")
+			return nil, ProtoErr
 		}
 
 		b, err := proto.Marshal(msg)
 		if err != nil {
 			return nil, err
 		}
-		log.Println("returning proto")
 		return b, nil
 	default:
 		// default applicaiton/json

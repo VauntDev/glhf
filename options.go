@@ -1,8 +1,6 @@
 package glhf
 
 type opts struct {
-	dsn         string
-	urlParamKey any
 }
 
 type Options interface {
@@ -23,14 +21,6 @@ func newFuncNodeOption(f func(*opts)) *funcOption {
 	}
 }
 
-func WithParametersKey(k any) Options {
-	return newFuncNodeOption(func(o *opts) {
-		o.urlParamKey = k
-	})
-}
-
 func defaultOptions() *opts {
-	return &opts{
-		dsn: "",
-	}
+	return &opts{}
 }
