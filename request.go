@@ -8,12 +8,6 @@ import (
 	"net/url"
 )
 
-type contextKey int
-
-const (
-	varsKey contextKey = iota
-)
-
 type Request[T Body] struct {
 	r    *http.Request
 	body *T
