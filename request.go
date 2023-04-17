@@ -2,7 +2,6 @@ package glhf
 
 import (
 	"context"
-	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -19,7 +18,7 @@ func (req *Request[T]) HTTPRequest() *http.Request {
 
 func (req *Request[T]) Body() (*T, error) {
 	if req.body == nil {
-		return nil, fmt.Errorf("nil body")
+		return nil, MissingRequestBodyErr
 	}
 	return req.body, nil
 }
