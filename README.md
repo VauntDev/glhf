@@ -50,3 +50,47 @@ Gorilla mux
 
 ## Examples
 A sample application can be found in the [example](./example/main.go) directory.
+
+
+The following is an example GET handler. The functions expects an empty body and Todo body in response. 
+```go
+func (h *Handlers) LookupTodo(r *glhf.Request[glhf.EmptyBody], w *glhf.Response[pb.Todo]) {
+	p := mux.Vars(r.HTTPRequest())
+
+	id, ok := p["id"]
+	if !ok {
+		w.SetStatus(http.StatusInternalServerError)
+		return
+	}
+
+	todo, err := h.service.Get(id)
+	if err != nil {
+		w.SetStatus(http.StatusNotFound)
+		return
+	}
+
+	w.Body = todo
+	log.Println("external handler", w.Body)
+	w.SetStatus(http.StatusOK)
+	return
+
+}
+```
+
+The following is an example POST handler. The function expects a Todo body and Todo response. 
+```go 
+func (h *Handlers) CreateTodo(r *glhf.Request[pb.Todo], w *glhf.Response[glhf.EmptyBody]) {
+	t, err := r.Body()
+	if err != nil {
+		w.SetStatus(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.Add(t); err != nil {
+		w.SetStatus(http.StatusInternalServerError)
+		return
+	}
+	w.SetStatus(http.StatusOK)
+	return
+}
+```
