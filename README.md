@@ -52,7 +52,7 @@ mux.HandleFunc("/todo/{id}", glhf.Get(h.LookupTodo))
 ## Future Work
 
 - GLHF router
-- cache support ( https://www.rfc-editor.org/rfc/rfc9111.html )
+- cache support [RFC 9111]( https://www.rfc-editor.org/rfc/rfc9111.html )
 
 ## Examples
 
