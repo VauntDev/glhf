@@ -1,4 +1,3 @@
-
 # Example Application
 
 This is an example application that demostrates receiving protobuf bytes and returning json.

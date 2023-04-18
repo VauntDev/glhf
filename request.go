@@ -21,11 +21,8 @@ func (req *Request[T]) HTTPRequest() *http.Request {
 }
 
 // Body returns the generic http body, or nil if no body exists.
-func (req *Request[T]) Body() (*T, error) {
-	if req.body == nil {
-		return nil, MissingRequestBodyErr
-	}
-	return req.body, nil
+func (req *Request[T]) Body() *T {
+	return req.body
 }
 
 // Header wraps http.Request.Header

@@ -6,6 +6,8 @@ Generic Light-weight Handler Framework
 
 This is a **experimental** library. The goal is to evaluate leveraging generics to reduce duplicate code around deserializing and serializing http requests/responses.
 
+GLHF is used in various production apps but caution should be used. We will be continually modifying GLHF.
+
 ## Installation
 
 GLHF is versioned using go modules. To install it, run

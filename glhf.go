@@ -68,14 +68,13 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 		}
 
 		req := &Request[I]{r: r, body: &requestBody}
-		var responseBody O
-		response := &Response[O]{w: w, Body: &responseBody}
+		response := &Response[O]{w: w}
 
 		// call the handler
 		fn(req, response)
 
-		if response.Body != nil {
-			b, err := marshalResponse(r.Header.Get(Accept), response.Body)
+		if response.body != nil {
+			b, err := marshalResponse(r.Header.Get(Accept), response.body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -109,13 +108,13 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 
 		req := &Request[I]{r: r}
 		var responseBody O
-		response := &Response[O]{w: w, Body: &responseBody}
+		response := &Response[O]{w: w, body: &responseBody}
 
 		// call the handler
 		fn(req, response)
 
-		if response.Body != nil {
-			b, err := marshalResponse(r.Header.Get(Accept), response.Body)
+		if response.body != nil {
+			b, err := marshalResponse(r.Header.Get(Accept), response.body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -161,14 +160,13 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 
 			req := &Request[I]{r: r, body: &requestBody}
 
-			var responseBody O
-			response := &Response[O]{w: w, Body: &responseBody}
+			response := &Response[O]{w: w}
 
 			// call the handler
 			fn(req, response)
 
-			if response.Body != nil {
-				b, err := marshalResponse(r.Header.Get(Accept), response.Body)
+			if response.body != nil {
+				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
@@ -219,14 +217,13 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 
 		req := &Request[I]{r: r, body: &requestBody}
 
-		var responseBody O
-		response := &Response[O]{w: w, Body: &responseBody}
+		response := &Response[O]{w: w}
 
 		// call the handler
 		fn(req, response)
 
-		if response.Body != nil {
-			b, err := marshalResponse(r.Header.Get(Accept), response.Body)
+		if response.body != nil {
+			b, err := marshalResponse(r.Header.Get(Accept), response.body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -271,14 +268,13 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 
 			req := &Request[I]{r: r, body: &requestBody}
 
-			var responseBody O
-			response := &Response[O]{w: w, Body: &responseBody}
+			response := &Response[O]{w: w}
 
 			// call the handler
 			fn(req, response)
 
-			if response.Body != nil {
-				b, err := marshalResponse(r.Header.Get(Accept), response.Body)
+			if response.body != nil {
+				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return

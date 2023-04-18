@@ -57,21 +57,19 @@ func (h *Handlers) LookupTodo(r *glhf.Request[glhf.EmptyBody], w *glhf.Response[
 		return
 	}
 
-	w.Body = todo
-	log.Println("external handler", w.Body)
+	w.SetBody(todo)
 	w.SetStatus(http.StatusOK)
 	return
 
 }
 
 func (h *Handlers) CreateTodo(r *glhf.Request[pb.Todo], w *glhf.Response[glhf.EmptyBody]) {
-	t, err := r.Body()
-	if err != nil {
+	if r.Body() == nil {
 		w.SetStatus(http.StatusBadRequest)
 		return
 	}
 
-	if err := h.service.Add(t); err != nil {
+	if err := h.service.Add(r.Body()); err != nil {
 		w.SetStatus(http.StatusInternalServerError)
 		return
 	}
@@ -138,8 +136,8 @@ func main() {
 	todo := &pb.Todo{
 		Id: id,
 		Item: &pb.Item{
-			Name:    "Post Example",
-			Message: "This todo is used to demo the post functionality of glhf",
+			Name:    "Marshaling Example",
+			Message: "This todo is used to demo the marshalling functionality of glhf",
 		},
 	}
 

@@ -8,15 +8,28 @@ import (
 type Response[T any] struct {
 	w          http.ResponseWriter
 	statusCode int
-	Body       *T
+	body       *T
 }
 
-// Header returns the underlying http response header object
-func (res *Response[T]) Header() http.Header {
-	return res.w.Header()
+// Setheader sets the header entries associated with key to the single element value.
+// It replaces any existing values associated with key. The key is case insensitive.
+// It is canonicalized by textproto.CanonicalMIMEHeaderKey. To use non-canonical keys, assign to the map directly.
+func (res *Response[T]) SetHeader(k string, v string) {
+	res.w.Header().Set(k, v)
+}
+
+// Add adds the key, value pair to the header.
+// It appends to any existing values associated with key.
+// The key is case insensitive; it is canonicalized by CanonicalHeaderKey.
+func (res *Response[T]) AddHeader(k string, v string) {
+	res.w.Header().Add(k, v)
 }
 
 // SetStatus sets the http status code of the response
 func (res *Response[T]) SetStatus(statusCode int) {
 	res.statusCode = statusCode
+}
+
+func (res *Response[T]) SetBody(t *T) {
+	res.body = t
 }
