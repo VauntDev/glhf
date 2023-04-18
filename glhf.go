@@ -8,8 +8,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const (
+// Body is the request's body.
+type Body any
 
+// EmptyBody represents an empty http request body
+type EmptyBody struct{}
+
+const (
 	// ContentType header constant.
 	ContentType = "Content-Type"
 	Accept      = "Accept"
@@ -32,15 +37,17 @@ const (
 	ContentXML = "text/xml"
 )
 
+// HandleFunc responds to an HTTP request.
+// I and O represent the request body or response body.
 type HandleFunc[I Body, O Body] func(*Request[I], *Response[O])
 
-// DELETE deletes the specified resource. Optional request body
+// Delete deletes the specified resource. The underlying request body is optional.
 func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFunc {
 	opts := defaultOptions()
 	for _, opt := range options {
 		opt.Apply(opts)
 	}
-	// http handler function called by server
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -86,13 +93,14 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 	}
 }
 
-// Get requests a representation of the specified resource. No request body
+// Get requests a representation of the specified resource. Expects an empty request body. If a request
+// body is set, it will be ignored.
 func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.HandlerFunc {
 	opts := defaultOptions()
 	for _, opt := range options {
 		opt.Apply(opts)
 	}
-	// http handler function called by server
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -130,7 +138,7 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 	for _, opt := range options {
 		opt.Apply(opts)
 	}
-	// http handler function called by server
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -138,6 +146,7 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 		}
 
 		var requestBody I
+
 		// check for request body
 		if r.Body != nil || r.ContentLength >= 0 {
 			b, err := io.ReadAll(r.Body)
@@ -187,7 +196,7 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 	for _, opt := range options {
 		opt.Apply(opts)
 	}
-	// http handler function called by server
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -240,7 +249,7 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 	for _, opt := range options {
 		opt.Apply(opts)
 	}
-	// http handler function called by server
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			w.WriteHeader(http.StatusMethodNotAllowed)
