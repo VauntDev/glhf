@@ -1,6 +1,7 @@
 package glhf
 
 type opts struct {
+	defaultContentType string
 }
 
 type Options interface {
@@ -15,12 +16,21 @@ func (flo *funcOption) Apply(con *opts) {
 	flo.f(con)
 }
 
-func newFuncNodeOption(f func(*opts)) *funcOption {
+func newFuncOption(f func(*opts)) *funcOption {
 	return &funcOption{
 		f: f,
 	}
 }
 
+// Defines the Default Content-type to be used if one is not set by the user.
+func WithDefaultContentType(contentType string) Options {
+	return newFuncOption(func(o *opts) {
+		o.defaultContentType = contentType
+	})
+}
+
 func defaultOptions() *opts {
-	return &opts{}
+	return &opts{
+		defaultContentType: ContentJSON,
+	}
 }

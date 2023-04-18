@@ -9,6 +9,7 @@ type Response[T any] struct {
 	w          http.ResponseWriter
 	statusCode int
 	body       *T
+	marshal    MarshalFunc[T]
 }
 
 // Setheader sets the header entries associated with key to the single element value.
@@ -30,6 +31,13 @@ func (res *Response[T]) SetStatus(statusCode int) {
 	res.statusCode = statusCode
 }
 
+// SetBody sets the response body
 func (res *Response[T]) SetBody(t *T) {
 	res.body = t
+}
+
+// SetMarshalFunc sets the response marhsal func. If a marsharl function is supplied, it is prioritized over
+// other implemented marshalers regardless of the content-type or accept headers set.
+func (res *Response[T]) SetMarshalFunc(fn MarshalFunc[T]) {
+	res.marshal = fn
 }
