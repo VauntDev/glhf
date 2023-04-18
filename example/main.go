@@ -21,12 +21,6 @@ import (
 	"github.com/VauntDev/glhf/example/pb"
 )
 
-type contextKey int
-
-const (
-	varsKey contextKey = iota
-)
-
 type TodoService struct {
 	todos map[string]*pb.Todo
 }
@@ -53,19 +47,19 @@ func (h *Handlers) LookupTodo(r *glhf.Request[glhf.EmptyBody], w *glhf.Response[
 
 	id, ok := p["id"]
 	if !ok {
-		w.Status(http.StatusInternalServerError)
+		w.SetStatus(http.StatusInternalServerError)
 		return
 	}
 
 	todo, err := h.service.Get(id)
 	if err != nil {
-		w.Status(http.StatusNotFound)
+		w.SetStatus(http.StatusNotFound)
 		return
 	}
 
 	w.Body = todo
 	log.Println("external handler", w.Body)
-	w.Status(http.StatusOK)
+	w.SetStatus(http.StatusOK)
 	return
 
 }
@@ -73,15 +67,15 @@ func (h *Handlers) LookupTodo(r *glhf.Request[glhf.EmptyBody], w *glhf.Response[
 func (h *Handlers) CreateTodo(r *glhf.Request[pb.Todo], w *glhf.Response[glhf.EmptyBody]) {
 	t, err := r.Body()
 	if err != nil {
-		w.Status(http.StatusBadRequest)
+		w.SetStatus(http.StatusBadRequest)
 		return
 	}
 
 	if err := h.service.Add(t); err != nil {
-		w.Status(http.StatusInternalServerError)
+		w.SetStatus(http.StatusInternalServerError)
 		return
 	}
-	w.Status(http.StatusOK)
+	w.SetStatus(http.StatusOK)
 	return
 }
 
