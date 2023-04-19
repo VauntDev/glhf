@@ -71,7 +71,7 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 		}
 
 		req := &Request[I]{r: r, body: &requestBody}
-		response := &Response[O]{w: w}
+		response := &Response[O]{w: w, statusCode: http.StatusOK}
 
 		// call the handler
 		fn(req, response)
@@ -98,7 +98,7 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 				if len(contentType) == 0 {
 					contentType = opts.defaultContentType
 				}
-				b, err = marshalResponse(r.Header.Get(Accept), response.body)
+				b, err = marshalResponse(contentType, response.body)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
@@ -128,7 +128,7 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 		}
 
 		req := &Request[I]{r: r}
-		response := &Response[O]{w: w}
+		response := &Response[O]{w: w, statusCode: http.StatusOK}
 
 		// call the handler
 		fn(req, response)
@@ -146,16 +146,19 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 				}
 				return
 			}
+
 			b := make([]byte, 0, 0)
 			// client prefered content-type
 			b, err := marshalResponse(r.Header.Get(Accept), response.body)
 			if err != nil {
+
 				// server prefered content-type
 				contentType := response.w.Header().Get(ContentType)
 				if len(contentType) == 0 {
 					contentType = opts.defaultContentType
 				}
-				b, err = marshalResponse(r.Header.Get(Accept), response.body)
+
+				b, err = marshalResponse(contentType, response.body)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
@@ -202,7 +205,7 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 
 			req := &Request[I]{r: r, body: &requestBody}
 
-			response := &Response[O]{w: w}
+			response := &Response[O]{w: w, statusCode: http.StatusOK}
 
 			// call the handler
 			fn(req, response)
@@ -229,7 +232,7 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 					if len(contentType) == 0 {
 						contentType = opts.defaultContentType
 					}
-					b, err = marshalResponse(r.Header.Get(Accept), response.body)
+					b, err = marshalResponse(contentType, response.body)
 					if err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
 						return
@@ -278,7 +281,7 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 
 		req := &Request[I]{r: r, body: &requestBody}
 
-		response := &Response[O]{w: w}
+		response := &Response[O]{w: w, statusCode: http.StatusOK}
 
 		// call the handler
 		fn(req, response)
@@ -305,7 +308,7 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 				if len(contentType) == 0 {
 					contentType = opts.defaultContentType
 				}
-				b, err = marshalResponse(r.Header.Get(Accept), response.body)
+				b, err = marshalResponse(contentType, response.body)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
@@ -348,7 +351,7 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 
 			req := &Request[I]{r: r, body: &requestBody}
 
-			response := &Response[O]{w: w}
+			response := &Response[O]{w: w, statusCode: http.StatusOK}
 
 			// call the handler
 			fn(req, response)
@@ -375,7 +378,7 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 					if len(contentType) == 0 {
 						contentType = opts.defaultContentType
 					}
-					b, err = marshalResponse(r.Header.Get(Accept), response.body)
+					b, err = marshalResponse(contentType, response.body)
 					if err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
 						return
@@ -443,7 +446,6 @@ func marshalResponse(contentType string, body Body) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		return b, nil
 	default:
 		return nil, UnsupportedRequestTypeErr
