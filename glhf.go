@@ -149,7 +149,6 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 			// client preferred content-type
 			b, err := marshalResponse(r.Header.Get(Accept), response.body)
 			if err != nil {
-
 				// server preferred content-type
 				contentType := response.w.Header().Get(ContentType)
 				if len(contentType) == 0 {
