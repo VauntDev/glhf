@@ -89,11 +89,10 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 				}
 				return
 			}
-			b := make([]byte, 0, 0)
-			// client prefered content-type
+			// client preferred content-type
 			b, err := marshalResponse(r.Header.Get(Accept), response.body)
 			if err != nil {
-				// server prefered content-type
+				// server preferred content-type
 				contentType := response.w.Header().Get(ContentType)
 				if len(contentType) == 0 {
 					contentType = opts.defaultContentType
@@ -147,12 +146,11 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 				return
 			}
 
-			b := make([]byte, 0, 0)
-			// client prefered content-type
+			// client preferred content-type
 			b, err := marshalResponse(r.Header.Get(Accept), response.body)
 			if err != nil {
 
-				// server prefered content-type
+				// server preferred content-type
 				contentType := response.w.Header().Get(ContentType)
 				if len(contentType) == 0 {
 					contentType = opts.defaultContentType
@@ -223,11 +221,10 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 					}
 					return
 				}
-				b := make([]byte, 0, 0)
-				// client prefered content-type
+				// client preferred content-type
 				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
-					// server prefered content-type
+					// server preferred content-type
 					contentType := response.w.Header().Get(ContentType)
 					if len(contentType) == 0 {
 						contentType = opts.defaultContentType
@@ -299,11 +296,11 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 				}
 				return
 			}
-			b := make([]byte, 0, 0)
-			// client prefered content-type
+
+			// client preferred content-type
 			b, err := marshalResponse(r.Header.Get(Accept), response.body)
 			if err != nil {
-				// server prefered content-type
+				// server preferred content-type
 				contentType := response.w.Header().Get(ContentType)
 				if len(contentType) == 0 {
 					contentType = opts.defaultContentType
@@ -369,11 +366,10 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 					}
 					return
 				}
-				b := make([]byte, 0, 0)
-				// client prefered content-type
+				// client preferred content-type
 				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
-					// server prefered content-type
+					// server preferred content-type
 					contentType := response.w.Header().Get(ContentType)
 					if len(contentType) == 0 {
 						contentType = opts.defaultContentType
@@ -417,7 +413,7 @@ func unmarshalRequest(contentType string, b []byte, body Body) error {
 		return nil
 	case ContentJSON:
 
-		// default applicaiton/json
+		// default application/json
 		if err := json.Unmarshal(b, body); err != nil {
 			return err
 		}
