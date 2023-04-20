@@ -372,7 +372,6 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 				w.Write(b)
 			}
 			return
-
 		}
 
 		req := &Request[I]{r: r, body: &requestBody}
@@ -544,6 +543,7 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 func unmarshalRequest(contentType string, b []byte, body Body) error {
 	switch contentType {
 	case ContentProto:
+		// msg pointer matches body
 		msg, ok := body.(proto.Message)
 		if !ok {
 			return ErrProto
@@ -551,11 +551,6 @@ func unmarshalRequest(contentType string, b []byte, body Body) error {
 
 		if err := proto.Unmarshal(b, msg); err != nil {
 			return err
-		}
-
-		body, ok = msg.(Body)
-		if !ok {
-			return ErrProto
 		}
 
 		return nil
