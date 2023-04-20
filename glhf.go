@@ -164,7 +164,7 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 		}
 
 		req := &Request[I]{r: r}
-		response := &Response[O]{w: w, statusCode: http.StatusOK}
+		response := &Response[O]{w: w}
 
 		// call the handler
 		fn(req, response)
@@ -209,14 +209,13 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 				}
 				return
 			}
+
 			// ensure user supplied status code is valid
 			if validStatusCode(response.statusCode) {
 				w.WriteHeader(response.statusCode)
 			}
 			if len(bodyBytes) > 0 {
 				w.Write(bodyBytes)
-			} else {
-				w.WriteHeader(http.StatusNoContent)
 			}
 			return
 		}
