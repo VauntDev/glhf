@@ -18,6 +18,17 @@ GLHF is versioned using go modules. To install it, run
 
 GLHF is a simple library that abstracts common http patterns while aiming to not prevent more complex use cases.
 
+### Options
+
+GLHF uses an options pattern. Options can be passed directly into the Http Method functions.
+
+i.e `glhf.Get(myhandler, WithDefaultContentType("application/proto"))`
+
+- WithDefaultContentType: set the default contentType that should be used.
+- WithVerbose: enables verbose error responses, useful for developers that are running into error reading/writing http objects.
+
+More options will be added over time, check the godocs for future options.
+
 ### Marshaling
 
 Request and Response marshaling is handled in glfh by utilizing the following HTTP headers

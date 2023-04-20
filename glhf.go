@@ -52,62 +52,96 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		var errResp *errorResponse
 		if r.Method != http.MethodDelete {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
+			errResp = &errorResponse{
+				Code:    http.StatusMethodNotAllowed,
+				Message: "invalid method used, expected DELETE found " + r.Method,
+			}
 		}
 		var requestBody I
 		// check for request body
 		if r.Body != nil || r.ContentLength >= 0 {
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
-				return
+				errResp = &errorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to read request body",
+				}
 			}
 
 			if err := unmarshalRequest(r.Header.Get(ContentType), b, &requestBody); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
+				errResp = &errorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to unmarshal request with content-type " + r.Header.Get(ContentType),
+				}
 			}
 		}
 
+		// request failed to unmarshal, return with failure
+		if errResp != nil {
+			w.WriteHeader(errResp.Code)
+			if opts.verbose {
+				b, _ := json.Marshal(errResp)
+				w.Write(b)
+			}
+			return
+		}
+
 		req := &Request[I]{r: r, body: &requestBody}
-		response := &Response[O]{w: w, statusCode: http.StatusOK}
+		response := &Response[O]{w: w}
 
 		// call the handler
 		fn(req, response)
 
 		if response.body != nil {
+			var bodyBytes []byte
+			// if there is a custom marshaler, prioritize it
 			if response.marshal != nil {
 				b, err := response.marshal(*response.body)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
+					errResp = &errorResponse{
+						Code:    http.StatusInternalServerError,
+						Message: "failed to marshal response with custom marhsaler",
+					}
 				}
-				w.WriteHeader(response.statusCode)
-				if _, err := w.Write(b); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				return
-			}
-			// client preferred content-type
-			b, err := marshalResponse(r.Header.Get(Accept), response.body)
-			if err != nil {
-				// server preferred content-type
-				contentType := response.w.Header().Get(ContentType)
-				if len(contentType) == 0 {
-					contentType = opts.defaultContentType
-				}
-				b, err = marshalResponse(contentType, response.body)
+				bodyBytes = b
+			} else {
+				// client preferred content-type
+				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
+					// server preferred content-type
+					contentType := response.w.Header().Get(ContentType)
+					if len(contentType) == 0 {
+						contentType = opts.defaultContentType
+					}
+					b, err = marshalResponse(contentType, response.body)
+					if err != nil {
+						errResp = &errorResponse{
+							Code:    http.StatusInternalServerError,
+							Message: "failed to marshal response with content-type: " + contentType,
+						}
+					}
 				}
+				bodyBytes = b
 			}
-			w.WriteHeader(response.statusCode)
-			if _, err := w.Write(b); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+			// Response failed to marshal
+			if errResp != nil {
+				w.WriteHeader(errResp.Code)
+				if opts.verbose {
+					b, _ := json.Marshal(errResp)
+					w.Write(b)
+				}
 				return
 			}
+			// ensure user supplied status code is valid
+			if validStatusCode(response.statusCode) {
+				w.WriteHeader(response.statusCode)
+			}
+			if len(bodyBytes) > 0 {
+				w.Write(bodyBytes)
+			}
+			return
 		}
 	}
 }
@@ -121,9 +155,12 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		var errResp *errorResponse
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
+			errResp = &errorResponse{
+				Code:    http.StatusMethodNotAllowed,
+				Message: "invalid method used, expected GET found " + r.Method,
+			}
 		}
 
 		req := &Request[I]{r: r}
@@ -133,41 +170,54 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 		fn(req, response)
 
 		if response.body != nil {
+			var bodyBytes []byte
+			// if there is a custom marshaler, prioritize it
 			if response.marshal != nil {
 				b, err := response.marshal(*response.body)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
+					errResp = &errorResponse{
+						Code:    http.StatusInternalServerError,
+						Message: "failed to marshal response with custom marhsaler",
+					}
 				}
-				w.WriteHeader(response.statusCode)
-				if _, err := w.Write(b); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				return
-			}
-
-			// client preferred content-type
-			b, err := marshalResponse(r.Header.Get(Accept), response.body)
-			if err != nil {
-				// server preferred content-type
-				contentType := response.w.Header().Get(ContentType)
-				if len(contentType) == 0 {
-					contentType = opts.defaultContentType
-				}
-
-				b, err = marshalResponse(contentType, response.body)
+				bodyBytes = b
+			} else {
+				// client preferred content-type
+				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
+					// server preferred content-type
+					contentType := response.w.Header().Get(ContentType)
+					if len(contentType) == 0 {
+						contentType = opts.defaultContentType
+					}
+					b, err = marshalResponse(contentType, response.body)
+					if err != nil {
+						errResp = &errorResponse{
+							Code:    http.StatusInternalServerError,
+							Message: "failed to marshal response with content-type: " + contentType,
+						}
+					}
 				}
+				bodyBytes = b
 			}
-			w.WriteHeader(response.statusCode)
-			if _, err := w.Write(b); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+			// Response failed to marshal
+			if errResp != nil {
+				w.WriteHeader(errResp.Code)
+				if opts.verbose {
+					b, _ := json.Marshal(errResp)
+					w.Write(b)
+				}
 				return
 			}
-		} else {
-			w.WriteHeader(http.StatusNoContent)
+			// ensure user supplied status code is valid
+			if validStatusCode(response.statusCode) {
+				w.WriteHeader(response.statusCode)
+			}
+			if len(bodyBytes) > 0 {
+				w.Write(bodyBytes)
+			} else {
+				w.WriteHeader(http.StatusNoContent)
+			}
 			return
 		}
 	}
@@ -181,45 +231,66 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		var errResp *errorResponse
 		if r.Method != http.MethodPatch {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
+			errResp = &errorResponse{
+				Code:    http.StatusMethodNotAllowed,
+				Message: "invalid method used, expected PATCH found " + r.Method,
+			}
 		}
-
 		var requestBody I
-
 		// check for request body
 		if r.Body != nil || r.ContentLength >= 0 {
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
-				return
+				errResp = &errorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to read request body",
+				}
 			}
 
 			if err := unmarshalRequest(r.Header.Get(ContentType), b, &requestBody); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			req := &Request[I]{r: r, body: &requestBody}
-
-			response := &Response[O]{w: w, statusCode: http.StatusOK}
-
-			// call the handler
-			fn(req, response)
-
-			if response.body != nil {
-				if response.marshal != nil {
-					b, err := response.marshal(*response.body)
-					if err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-					}
-					w.WriteHeader(response.statusCode)
-					if _, err := w.Write(b); err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						return
-					}
-					return
+				errResp = &errorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to unmarshal request with content-type " + r.Header.Get(ContentType),
 				}
+			}
+		} else {
+			errResp = &errorResponse{
+				Code:    http.StatusBadRequest,
+				Message: "missing request body",
+			}
+		}
+
+		// request failed to unmarshal, return with failure
+		if errResp != nil {
+			w.WriteHeader(errResp.Code)
+			if opts.verbose {
+				b, _ := json.Marshal(errResp)
+				w.Write(b)
+			}
+			return
+		}
+
+		req := &Request[I]{r: r, body: &requestBody}
+		response := &Response[O]{w: w, statusCode: http.StatusOK}
+
+		// call the handler
+		fn(req, response)
+
+		if response.body != nil {
+			var bodyBytes []byte
+			// if there is a custom marshaler, prioritize it
+			if response.marshal != nil {
+				b, err := response.marshal(*response.body)
+				if err != nil {
+					errResp = &errorResponse{
+						Code:    http.StatusInternalServerError,
+						Message: "failed to marshal response with custom marhsaler",
+					}
+				}
+				bodyBytes = b
+			} else {
 				// client preferred content-type
 				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
@@ -230,19 +301,30 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 					}
 					b, err = marshalResponse(contentType, response.body)
 					if err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						return
+						errResp = &errorResponse{
+							Code:    http.StatusInternalServerError,
+							Message: "failed to marshal response with content-type: " + contentType,
+						}
 					}
 				}
-				w.WriteHeader(response.statusCode)
-				if _, err := w.Write(b); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
+				bodyBytes = b
 			}
-		} else {
-			// missing request body
-			w.WriteHeader(http.StatusBadRequest)
+			// Response failed to marshal
+			if errResp != nil {
+				w.WriteHeader(errResp.Code)
+				if opts.verbose {
+					b, _ := json.Marshal(errResp)
+					w.Write(b)
+				}
+				return
+			}
+			// ensure user supplied status code is valid
+			if validStatusCode(response.statusCode) {
+				w.WriteHeader(response.statusCode)
+			}
+			if len(bodyBytes) > 0 {
+				w.Write(bodyBytes)
+			}
 			return
 		}
 	}
@@ -256,23 +338,41 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		var errResp *errorResponse
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
+			errResp = &errorResponse{
+				Code:    http.StatusMethodNotAllowed,
+				Message: "invalid method used, expected POST found " + r.Method,
+			}
 		}
-
 		var requestBody I
 		// check for request body
 		if r.Body != nil || r.ContentLength >= 0 {
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
-				return
+				errResp = &errorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to read request body",
+				}
 			}
 
 			if err := unmarshalRequest(r.Header.Get(ContentType), b, &requestBody); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
+				errResp = &errorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to unmarshal request with content-type " + r.Header.Get(ContentType),
+				}
 			}
+		}
+
+		// request failed to unmarshal, return with failure
+		if errResp != nil {
+			w.WriteHeader(errResp.Code)
+			if opts.verbose {
+				b, _ := json.Marshal(errResp)
+				w.Write(b)
+			}
+			return
+
 		}
 
 		req := &Request[I]{r: r, body: &requestBody}
@@ -283,38 +383,53 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 		fn(req, response)
 
 		if response.body != nil {
+			var bodyBytes []byte
+			// if there is a custom marshaler, prioritize it
 			if response.marshal != nil {
 				b, err := response.marshal(*response.body)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
+					errResp = &errorResponse{
+						Code:    http.StatusInternalServerError,
+						Message: "failed to marshal response with custom marhsaler",
+					}
 				}
-				w.WriteHeader(response.statusCode)
-				if _, err := w.Write(b); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				return
-			}
-
-			// client preferred content-type
-			b, err := marshalResponse(r.Header.Get(Accept), response.body)
-			if err != nil {
-				// server preferred content-type
-				contentType := response.w.Header().Get(ContentType)
-				if len(contentType) == 0 {
-					contentType = opts.defaultContentType
-				}
-				b, err = marshalResponse(contentType, response.body)
+				bodyBytes = b
+			} else {
+				// client preferred content-type
+				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
+					// server preferred content-type
+					contentType := response.w.Header().Get(ContentType)
+					if len(contentType) == 0 {
+						contentType = opts.defaultContentType
+					}
+					b, err = marshalResponse(contentType, response.body)
+					if err != nil {
+						errResp = &errorResponse{
+							Code:    http.StatusInternalServerError,
+							Message: "failed to marshal response with content-type: " + contentType,
+						}
+					}
 				}
+				bodyBytes = b
 			}
-			w.WriteHeader(response.statusCode)
-			if _, err := w.Write(b); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+			// Response failed to marshal
+			if errResp != nil {
+				w.WriteHeader(errResp.Code)
+				if opts.verbose {
+					b, _ := json.Marshal(errResp)
+					w.Write(b)
+				}
 				return
 			}
+			// ensure user supplied status code is valid
+			if validStatusCode(response.statusCode) {
+				w.WriteHeader(response.statusCode)
+			}
+			if len(bodyBytes) > 0 {
+				w.Write(bodyBytes)
+			}
+			return
 		}
 	}
 }
@@ -327,44 +442,66 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		var errResp *errorResponse
 		if r.Method != http.MethodPut {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
+			errResp = &errorResponse{
+				Code:    http.StatusMethodNotAllowed,
+				Message: "invalid method used, expected PUT found " + r.Method,
+			}
 		}
-
 		var requestBody I
 		// check for request body
 		if r.Body != nil || r.ContentLength >= 0 {
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
-				return
+				errResp = &errorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to read request body",
+				}
 			}
 
 			if err := unmarshalRequest(r.Header.Get(ContentType), b, &requestBody); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			req := &Request[I]{r: r, body: &requestBody}
-
-			response := &Response[O]{w: w, statusCode: http.StatusOK}
-
-			// call the handler
-			fn(req, response)
-
-			if response.body != nil {
-				if response.marshal != nil {
-					b, err := response.marshal(*response.body)
-					if err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-					}
-					w.WriteHeader(response.statusCode)
-					if _, err := w.Write(b); err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						return
-					}
-					return
+				errResp = &errorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "failed to unmarshal request with content-type " + r.Header.Get(ContentType),
 				}
+			}
+		} else {
+			errResp = &errorResponse{
+				Code:    http.StatusBadRequest,
+				Message: "missing request body",
+			}
+		}
+
+		// request failed to unmarshal, return with failure
+		if errResp != nil {
+			w.WriteHeader(errResp.Code)
+			if opts.verbose {
+				b, _ := json.Marshal(errResp)
+				w.Write(b)
+			}
+			return
+		}
+
+		req := &Request[I]{r: r, body: &requestBody}
+		response := &Response[O]{w: w, statusCode: http.StatusOK}
+
+		// call the handler
+		fn(req, response)
+
+		if response.body != nil {
+			var bodyBytes []byte
+			// if there is a custom marshaler, prioritize it
+			if response.marshal != nil {
+				b, err := response.marshal(*response.body)
+				if err != nil {
+					errResp = &errorResponse{
+						Code:    http.StatusInternalServerError,
+						Message: "failed to marshal response with custom marhsaler",
+					}
+				}
+				bodyBytes = b
+			} else {
 				// client preferred content-type
 				b, err := marshalResponse(r.Header.Get(Accept), response.body)
 				if err != nil {
@@ -375,19 +512,30 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 					}
 					b, err = marshalResponse(contentType, response.body)
 					if err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						return
+						errResp = &errorResponse{
+							Code:    http.StatusInternalServerError,
+							Message: "failed to marshal response with content-type: " + contentType,
+						}
 					}
 				}
-				w.WriteHeader(response.statusCode)
-				if _, err := w.Write(b); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
+				bodyBytes = b
 			}
-		} else {
-			// missing request body
-			w.WriteHeader(http.StatusBadRequest)
+			// Response failed to marshal
+			if errResp != nil {
+				w.WriteHeader(errResp.Code)
+				if opts.verbose {
+					b, _ := json.Marshal(errResp)
+					w.Write(b)
+				}
+				return
+			}
+			// ensure user supplied status code is valid
+			if validStatusCode(response.statusCode) {
+				w.WriteHeader(response.statusCode)
+			}
+			if len(bodyBytes) > 0 {
+				w.Write(bodyBytes)
+			}
 			return
 		}
 	}
@@ -398,7 +546,7 @@ func unmarshalRequest(contentType string, b []byte, body Body) error {
 	case ContentProto:
 		msg, ok := body.(proto.Message)
 		if !ok {
-			return ProtoErr
+			return ErrProto
 		}
 
 		if err := proto.Unmarshal(b, msg); err != nil {
@@ -407,8 +555,9 @@ func unmarshalRequest(contentType string, b []byte, body Body) error {
 
 		body, ok = msg.(Body)
 		if !ok {
-			return ProtoErr
+			return ErrProto
 		}
+
 		return nil
 	case ContentJSON:
 
@@ -419,7 +568,7 @@ func unmarshalRequest(contentType string, b []byte, body Body) error {
 
 		return nil
 	default:
-		return UnsupportedRequestTypeErr
+		return ErrUnsupportedRequestType
 	}
 }
 
@@ -428,7 +577,7 @@ func marshalResponse(contentType string, body Body) ([]byte, error) {
 	case ContentProto:
 		msg, ok := body.(proto.Message)
 		if !ok {
-			return nil, ProtoErr
+			return nil, ErrProto
 		}
 
 		b, err := proto.Marshal(msg)
@@ -443,6 +592,10 @@ func marshalResponse(contentType string, body Body) ([]byte, error) {
 		}
 		return b, nil
 	default:
-		return nil, UnsupportedRequestTypeErr
+		return nil, ErrUnsupportedRequestType
 	}
+}
+
+func validStatusCode(statusCode int) bool {
+	return (statusCode >= 100 && statusCode <= 999)
 }

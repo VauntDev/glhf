@@ -27,12 +27,9 @@ func (res *Response[T]) AddHeader(k string, v string) {
 }
 
 // SetStatus sets the http status code of the response.
-// StatusCode is ignored if it is not a valid http status code (i.e 1xx-5xx)
+// StatusCode is ignored by the handler if it is not a valid http status code (i.e 1xx-5xx)
 func (res *Response[T]) SetStatus(statusCode int) {
-	// matches check from golang stand library
-	if statusCode >= 100 || statusCode <= 999 {
-		res.statusCode = statusCode
-	}
+	res.statusCode = statusCode
 }
 
 // SetBody sets the response body

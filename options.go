@@ -2,6 +2,7 @@ package glhf
 
 type opts struct {
 	defaultContentType string
+	verbose            bool
 }
 
 type Options interface {
@@ -29,8 +30,15 @@ func WithDefaultContentType(contentType string) Options {
 	})
 }
 
+func WithVerbose(b bool) Options {
+	return newFuncOption(func(o *opts) {
+		o.verbose = b
+	})
+}
+
 func defaultOptions() *opts {
 	return &opts{
 		defaultContentType: ContentJSON,
+		verbose:            false,
 	}
 }
