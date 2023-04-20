@@ -59,8 +59,6 @@ func (h *Handlers) LookupTodo(r *glhf.Request[glhf.EmptyBody], w *glhf.Response[
 
 	w.SetBody(todo)
 	w.SetStatus(http.StatusOK)
-	return
-
 }
 
 func (h *Handlers) CreateTodo(r *glhf.Request[pb.Todo], w *glhf.Response[glhf.EmptyBody]) {
@@ -74,7 +72,6 @@ func (h *Handlers) CreateTodo(r *glhf.Request[pb.Todo], w *glhf.Response[glhf.Em
 		return
 	}
 	w.SetStatus(http.StatusOK)
-	return
 }
 
 func main() {
