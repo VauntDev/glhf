@@ -37,8 +37,10 @@ func (res *Response[T]) SetBody(t *T) {
 	res.body = t
 }
 
-// SetMarshalFunc sets the response marshal func. If a marshal function is supplied, it is prioritized over
-// other implemented marshaler regardless of the content-type or accept headers set.
-func (res *Response[T]) SetMarshalFunc(fn MarshalFunc[T]) {
+// SetMarshalFunc sets content-type header based on the value supplied and the response marshal func.
+// If a marshal function is supplied, it is prioritized over
+// other implemented marshaler regardless of supported content-type or accept values.
+func (res *Response[T]) SetMarshalFunc(contentType string, fn MarshalFunc[T]) {
+	res.SetHeader(ContentType, contentType)
 	res.marshal = fn
 }
