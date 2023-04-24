@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -42,7 +43,75 @@ type Handlers struct {
 	service *TodoService
 }
 
-func (h *Handlers) LookupTodo(r *glhf.Request[glhf.EmptyBody], w *glhf.Response[pb.Todo]) {
+func (h *Handlers) StandardLookupTodo(w http.ResponseWriter, r *http.Request) {
+	p := mux.Vars(r)
+
+	id, ok := p["id"]
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	todo, err := h.service.Get(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	switch r.Header.Get("accept") {
+	case "application/json":
+		b, err := json.Marshal(todo)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	case "application/proto":
+		b, err := proto.Marshal(todo)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
+
+func (h *Handlers) StandardCreateTodo(w http.ResponseWriter, r *http.Request) {
+	todo := &pb.Todo{}
+
+	switch r.Header.Get("content-type") {
+	case "application/json":
+		decode := json.NewDecoder(r.Body)
+		if err := decode.Decode(todo); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	case "application/proto":
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if err := proto.Unmarshal(b, todo); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.Add(todo); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handlers) GLHFLookupTodo(r *glhf.Request[glhf.EmptyBody], w *glhf.Response[pb.Todo]) {
 	p := mux.Vars(r.HTTPRequest())
 
 	id, ok := p["id"]
@@ -61,7 +130,7 @@ func (h *Handlers) LookupTodo(r *glhf.Request[glhf.EmptyBody], w *glhf.Response[
 	w.SetStatus(http.StatusOK)
 }
 
-func (h *Handlers) CreateTodo(r *glhf.Request[pb.Todo], w *glhf.Response[glhf.EmptyBody]) {
+func (h *Handlers) GLHFCreateTodo(r *glhf.Request[pb.Todo], w *glhf.Response[glhf.EmptyBody]) {
 	if r.Body() == nil {
 		w.SetStatus(http.StatusBadRequest)
 		return
@@ -81,8 +150,10 @@ func main() {
 	h := &Handlers{service: TodoService}
 
 	mux := mux.NewRouter()
-	mux.HandleFunc("/todo", glhf.Post(h.CreateTodo))
-	mux.HandleFunc("/todo/{id}", glhf.Get(h.LookupTodo))
+	mux.HandleFunc("/standard/todo", h.StandardCreateTodo)
+	mux.HandleFunc("/standard/todo/{id}", h.StandardLookupTodo)
+	mux.HandleFunc("/glhf/todo", glhf.Post(h.GLHFCreateTodo))
+	mux.HandleFunc("/glhf/todo/{id}", glhf.Get(h.GLHFLookupTodo))
 
 	server := http.Server{
 		Addr:    ":8080",
@@ -143,7 +214,7 @@ func main() {
 		log.Fatal("failed to marshal proto")
 	}
 
-	postRequest, err := http.NewRequest("POST", "http://localhost:8080/todo", bytes.NewBuffer(b))
+	postRequest, err := http.NewRequest("POST", "http://localhost:8080/glhf/todo", bytes.NewBuffer(b))
 	if err != nil {
 		log.Fatal("failed to create post request")
 	}
@@ -161,7 +232,7 @@ func main() {
 		log.Fatal("post request failed with", postResp.StatusCode)
 	}
 
-	getRequest, err := http.NewRequest("GET", "http://localhost:8080/todo/"+id, nil)
+	getRequest, err := http.NewRequest("GET", "http://localhost:8080/glhf/todo/"+id, nil)
 	if err != nil {
 		log.Fatal("failed to create get request")
 	}
