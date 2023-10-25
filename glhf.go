@@ -94,8 +94,8 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 		// call the handler
 		fn(req, response)
 
+		var bodyBytes []byte
 		if response.body != nil {
-			var bodyBytes []byte
 			// if there is a custom marshaler, prioritize it
 			if response.marshal != nil {
 				b, err := response.marshal(*response.body)
@@ -134,14 +134,13 @@ func Delete[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handle
 				}
 				return
 			}
-			// ensure user supplied status code is valid
-			if validStatusCode(response.statusCode) {
-				w.WriteHeader(response.statusCode)
-			}
-			if len(bodyBytes) > 0 {
-				w.Write(bodyBytes)
-			}
-			return
+		}
+		// ensure user supplied status code is valid
+		if validStatusCode(response.statusCode) {
+			w.WriteHeader(response.statusCode)
+		}
+		if len(bodyBytes) > 0 {
+			w.Write(bodyBytes)
 		}
 	}
 }
@@ -169,8 +168,8 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 		// call the handler
 		fn(req, response)
 
+		var bodyBytes []byte
 		if response.body != nil {
-			var bodyBytes []byte
 			// if there is a custom marshaler, prioritize it
 			if response.marshal != nil {
 				b, err := response.marshal(*response.body)
@@ -209,15 +208,13 @@ func Get[I EmptyBody, O any](fn HandleFunc[I, O], options ...Options) http.Handl
 				}
 				return
 			}
-
-			// ensure user supplied status code is valid
-			if validStatusCode(response.statusCode) {
-				w.WriteHeader(response.statusCode)
-			}
-			if len(bodyBytes) > 0 {
-				w.Write(bodyBytes)
-			}
-			return
+		}
+		// ensure user supplied status code is valid
+		if validStatusCode(response.statusCode) {
+			w.WriteHeader(response.statusCode)
+		}
+		if len(bodyBytes) > 0 {
+			w.Write(bodyBytes)
 		}
 	}
 }
@@ -277,8 +274,8 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 		// call the handler
 		fn(req, response)
 
+		var bodyBytes []byte
 		if response.body != nil {
-			var bodyBytes []byte
 			// if there is a custom marshaler, prioritize it
 			if response.marshal != nil {
 				b, err := response.marshal(*response.body)
@@ -317,14 +314,13 @@ func Patch[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.Handler
 				}
 				return
 			}
-			// ensure user supplied status code is valid
-			if validStatusCode(response.statusCode) {
-				w.WriteHeader(response.statusCode)
-			}
-			if len(bodyBytes) > 0 {
-				w.Write(bodyBytes)
-			}
-			return
+		}
+		// ensure user supplied status code is valid
+		if validStatusCode(response.statusCode) {
+			w.WriteHeader(response.statusCode)
+		}
+		if len(bodyBytes) > 0 {
+			w.Write(bodyBytes)
 		}
 	}
 }
@@ -380,8 +376,8 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 		// call the handler
 		fn(req, response)
 
+		var bodyBytes []byte
 		if response.body != nil {
-			var bodyBytes []byte
 			// if there is a custom marshaler, prioritize it
 			if response.marshal != nil {
 				b, err := response.marshal(*response.body)
@@ -419,15 +415,15 @@ func Post[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerF
 					w.Write(b)
 				}
 				return
+
 			}
-			// ensure user supplied status code is valid
-			if validStatusCode(response.statusCode) {
-				w.WriteHeader(response.statusCode)
-			}
-			if len(bodyBytes) > 0 {
-				w.Write(bodyBytes)
-			}
-			return
+		}
+		// ensure user supplied status code is valid
+		if validStatusCode(response.statusCode) {
+			w.WriteHeader(response.statusCode)
+		}
+		if len(bodyBytes) > 0 {
+			w.Write(bodyBytes)
 		}
 	}
 }
@@ -487,8 +483,8 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 		// call the handler
 		fn(req, response)
 
+		var bodyBytes []byte
 		if response.body != nil {
-			var bodyBytes []byte
 			// if there is a custom marshaler, prioritize it
 			if response.marshal != nil {
 				b, err := response.marshal(*response.body)
@@ -527,14 +523,13 @@ func Put[I Body, O Body](fn HandleFunc[I, O], options ...Options) http.HandlerFu
 				}
 				return
 			}
-			// ensure user supplied status code is valid
-			if validStatusCode(response.statusCode) {
-				w.WriteHeader(response.statusCode)
-			}
-			if len(bodyBytes) > 0 {
-				w.Write(bodyBytes)
-			}
-			return
+		}
+		// ensure user supplied status code is valid
+		if validStatusCode(response.statusCode) {
+			w.WriteHeader(response.statusCode)
+		}
+		if len(bodyBytes) > 0 {
+			w.Write(bodyBytes)
 		}
 	}
 }
